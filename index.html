@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c3aed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shadow Monarch">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Shadow Monarch Training System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #e0d8ff; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+  .app { max-width: 480px; margin: 0 auto; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+
+  .header { text-align: center; padding: 24px 0 16px; border-bottom: 1px solid #2a1f5a; margin-bottom: 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #a78bfa; letter-spacing: 2px; text-transform: uppercase; }
+  .header p { font-size: 12px; color: #6b5fa0; margin-top: 4px; letter-spacing: 1px; }
+
+  /* COUNTDOWN */
+  .countdown-box { border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; text-align: center; border: 1px solid; transition: all 0.5s; }
+  .countdown-box.normal { background: #12102a; border-color: #2a1f5a; }
+  .countdown-box.warning { background: #1a1200; border-color: #92400e; }
+  .countdown-box.danger { background: #1a0000; border-color: #7f1d1d; animation: pulse-border 1s infinite; }
+  .countdown-box.done { background: #0a1a0a; border-color: #14532d; }
+  .countdown-box.rest { background: #12102a; border-color: #2a1f5a; }
+  @keyframes pulse-border { 0%,100%{border-color:#7f1d1d;box-shadow:0 0 0 0 rgba(220,38,38,0.4)} 50%{border-color:#ef4444;box-shadow:0 0 0 6px rgba(220,38,38,0)} }
+  .countdown-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+  .countdown-box.normal .countdown-label { color: #6b5fa0; }
+  .countdown-box.warning .countdown-label { color: #f59e0b; }
+  .countdown-box.danger .countdown-label { color: #ef4444; }
+  .countdown-box.done .countdown-label { color: #4ade80; }
+  .countdown-time { font-size: 36px; font-weight: 900; letter-spacing: 4px; font-variant-numeric: tabular-nums; }
+  .countdown-box.normal .countdown-time { color: #a78bfa; }
+  .countdown-box.warning .countdown-time { color: #f59e0b; }
+  .countdown-box.danger .countdown-time { color: #ef4444; animation: flicker 0.5s infinite; }
+  .countdown-box.done .countdown-time { color: #4ade80; font-size: 24px; }
+  .countdown-box.rest .countdown-time { color: #6b5fa0; font-size: 24px; }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .countdown-sub { font-size: 11px; margin-top: 4px; }
+  .countdown-box.normal .countdown-sub { color: #4a3a7a; }
+  .countdown-box.warning .countdown-sub { color: #92400e; }
+  .countdown-box.danger .countdown-sub { color: #991b1b; }
+  .countdown-box.done .countdown-sub { color: #166534; }
+
+  .rank-bar { background: #12102a; border: 1px solid #2a1f5a; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .rank-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; flex-shrink: 0; }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 16px; font-weight: 700; }
+  .rank-sub { font-size: 11px; color: #6b5fa0; margin-top: 2px; }
+  .rank-progress { margin-top: 8px; background: #1e1a3a; border-radius: 4px; height: 6px; overflow: hidden; }
+  .rank-progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #7c3aed, #a78bfa); transition: width 0.5s; }
+  .streak-badge { background: #1e1a3a; border: 1px solid #3d2f7a; border-radius: 8px; padding: 6px 10px; text-align: center; flex-shrink: 0; }
+  .streak-num { font-size: 20px; font-weight: 700; color: #a78bfa; display: block; }
+  .streak-label { font-size: 10px; color: #6b5fa0; }
+
+  .day-card { background: #12102a; border: 1px solid #2a1f5a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .day-title { font-size: 14px; font-weight: 700; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; }
+  .task-list { display: flex; flex-direction: column; gap: 8px; }
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #0f0d22; border: 1px solid #1e1a3a; border-radius: 8px; cursor: pointer; transition: all 0.2s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .task-item:hover { border-color: #3d2f7a; }
+  .task-item.done { border-color: #4c1d95; background: #1a1040; }
+  .task-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #3d2f7a; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .task-item.done .task-check { background: #7c3aed; border-color: #7c3aed; }
+  .task-check::after { content:''; display:none; width:6px; height:10px; border:2px solid white; border-top:none; border-left:none; transform:rotate(45deg) translateY(-1px); }
+  .task-item.done .task-check::after { display: block; }
+  .task-text { font-size: 13px; color: #c4b5fd; flex: 1; }
+  .task-item.done .task-text { color: #6b5fa0; text-decoration: line-through; }
+
+  .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; transition: all 0.2s; margin-top: 12px; -webkit-tap-highlight-color: transparent; }
+  .btn-primary { background: #7c3aed; color: white; }
+  .btn-primary:active { background: #6d28d9; }
+  .btn-danger { background: #7f1d1d; color: #fca5a5; }
+  .btn-secondary { background: #1e1a3a; color: #a78bfa; border: 1px solid #3d2f7a; }
+  .btn-green { background: #14532d; color: #86efac; }
+
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: #12102a; border: 1px solid #2a1f5a; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; }
+  .modal-close { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #3d2f7a; background: transparent; color: #a78bfa; cursor: pointer; font-size: 13px; margin-top: 8px; }
+
+  /* AUTO PENALTY MODAL */
+  .auto-penalty-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.97); z-index: 200; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.5s; }
+  .auto-penalty-overlay.active { display: flex; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .auto-penalty-modal { background: #0f0000; border: 2px solid #dc2626; border-radius: 16px; padding: 28px; width: 100%; max-width: 420px; text-align: center; animation: shake 0.5s ease-in-out; box-shadow: 0 0 40px rgba(220,38,38,0.4); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  .auto-penalty-icon { font-size: 52px; margin-bottom: 12px; animation: pulse-icon 1.5s infinite; display: block; }
+  @keyframes pulse-icon { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .auto-penalty-title { font-size: 22px; font-weight: 900; color: #ef4444; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 2px; }
+  .auto-penalty-sub { font-size: 13px; color: #7f1d1d; margin-bottom: 20px; line-height: 1.5; }
+  .auto-penalty-box { background: #1a0000; border: 1px solid #7f1d1d; border-radius: 10px; padding: 16px; margin-bottom: 16px; text-align: left; }
+  .auto-penalty-name { color: #fca5a5; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .auto-penalty-desc { color: #f87171; font-size: 13px; line-height: 1.6; }
+  .auto-penalty-accept { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #dc2626; background: #1a0000; color: #fca5a5; font-size: 14px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+
+  .penalty-box { background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .penalty-title { color: #fca5a5; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .penalty-desc { color: #f87171; font-size: 13px; line-height: 1.6; }
+  .reward-box { background: #0a1a0a; border: 1px solid #14532d; border-radius: 10px; padding: 16px; margin-bottom: 12px; text-align: center; }
+  .reward-title { color: #86efac; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .reward-desc { color: #4ade80; font-size: 13px; line-height: 1.6; }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+  .photo-thumb { aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: #1e1a3a; border: 1px solid #2a1f5a; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .photo-date { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 9px; color: #a78bfa; background: rgba(10,10,20,0.7); padding: 2px; }
+  .photo-empty { color: #3d2f7a; font-size: 20px; }
+  .photo-upload { display: none; }
+  .photo-req-box { background: #1a1040; border: 1px solid #4c1d95; border-radius: 10px; padding: 16px; text-align: center; }
+  .photo-req-title { color: #a78bfa; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .photo-req-desc { color: #8b7fd4; font-size: 12px; line-height: 1.6; margin-bottom: 12px; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-card { background: #0f0d22; border: 1px solid #1e1a3a; border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 700; color: #a78bfa; }
+  .stat-label { font-size: 11px; color: #6b5fa0; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: #0f0d22; border-radius: 10px; padding: 4px; }
+  .tab { flex: 1; padding: 8px; border-radius: 8px; border: none; background: transparent; color: #6b5fa0; font-size: 12px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+  .tab.active { background: #2a1f5a; color: #a78bfa; }
+
+  .tip-item { background: #0f0d22; border-left: 3px solid #7c3aed; border-radius: 0 8px 8px 0; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; color: #c4b5fd; line-height: 1.5; }
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+  .week-day { background: #0f0d22; border: 1px solid #1e1a3a; border-radius: 8px; padding: 8px 4px; text-align: center; }
+  .week-day.today { border-color: #7c3aed; }
+  .week-day.completed { background: #1a1040; border-color: #4c1d95; }
+  .week-day-name { font-size: 9px; color: #6b5fa0; text-transform: uppercase; }
+  .week-day-dot { width: 8px; height: 8px; border-radius: 50%; margin: 4px auto 0; background: #1e1a3a; }
+  .week-day.completed .week-day-dot { background: #7c3aed; }
+  .week-day.today .week-day-name { color: #a78bfa; }
+  .system-msg { text-align: center; padding: 12px; background: #0f0d22; border: 1px solid #2a1f5a; border-radius: 8px; font-size: 12px; color: #6b5fa0; font-style: italic; margin-bottom: 12px; }
+
+  .rankup-box { text-align: center; padding: 20px; }
+  .rankup-icon { font-size: 56px; margin-bottom: 12px; display: block; }
+  .rankup-title { font-size: 26px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; }
+  .rankup-sub { font-size: 13px; color: #8b7fd4; margin-bottom: 16px; }
+  .history-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #0f0d22; border: 1px solid #1e1a3a; border-radius: 8px; margin-bottom: 6px; }
+  .history-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .history-text { font-size: 12px; color: #c4b5fd; flex: 1; }
+  .history-date { font-size: 11px; color: #6b5fa0; }
+  .penalty-badge { display: inline-block; background: #7f1d1d; color: #fca5a5; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  .month-alert { background: #1a1a0a; border: 1px solid #854d0e; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .month-alert-title { color: #fbbf24; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .month-alert-desc { color: #ca8a04; font-size: 12px; line-height: 1.5; }
+  .install-banner { background: #1e1a3a; border: 1px solid #3d2f7a; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .install-banner p { font-size: 12px; color: #a78bfa; margin: 0; flex: 1; }
+  .install-btn { background: #7c3aed; color: white; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Shadow Monarch</h1>
+    <p>Training System</p>
+  </div>
+  <div id="install-area"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('today')">Hoy</button>
+    <button class="tab" onclick="showTab('stats')">Stats</button>
+    <button class="tab" onclick="showTab('diary')">Diario</button>
+    <button class="tab" onclick="showTab('history')">Historial</button>
+  </div>
+
+  <div id="tab-today">
+    <!-- COUNTDOWN -->
+    <div class="countdown-box normal" id="countdown-box">
+      <div class="countdown-label" id="countdown-label">Tiempo restante hoy</div>
+      <div class="countdown-time" id="countdown-time">--:--:--</div>
+      <div class="countdown-sub" id="countdown-sub">Completa tu misión antes de medianoche</div>
+    </div>
+
+    <div class="rank-bar">
+      <div class="rank-icon" id="rank-icon"></div>
+      <div class="rank-info">
+        <div class="rank-name" id="rank-name"></div>
+        <div class="rank-sub" id="rank-sub"></div>
+        <div class="rank-progress"><div class="rank-progress-fill" id="rank-fill"></div></div>
+      </div>
+      <div class="streak-badge">
+        <span class="streak-num" id="streak-num">0</span>
+        <span class="streak-label">racha</span>
+      </div>
+    </div>
+
+    <div id="month-alert-area"></div>
+    <div class="week-grid" id="week-grid"></div>
+    <div class="system-msg" id="day-msg"></div>
+    <div id="task-area"></div>
+    <button class="btn btn-primary" id="complete-btn" onclick="startComplete()" style="display:none">Misión completada</button>
+  </div>
+
+  <div id="tab-stats" style="display:none">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-label">Entrenamientos</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-streak">0</div><div class="stat-label">Racha actual</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-best">0</div><div class="stat-label">Mejor racha</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-penalties">0</div><div class="stat-label">Penalizaciones</div></div>
+    </div>
+    <div class="day-card">
+      <div class="day-header"><span class="day-title">Progreso de rango</span></div>
+      <div id="rank-list"></div>
+    </div>
+    <div class="day-card">
+      <div class="day-header"><span class="day-title">Recompensas de rango</span></div>
+      <div id="reward-list"></div>
+    </div>
+  </div>
+
+  <div id="tab-diary" style="display:none">
+    <div class="day-card">
+      <div class="day-header"><span class="day-title">Diario del Hunter</span></div>
+      <p style="font-size:12px;color:#6b5fa0;margin-bottom:4px">Una foto por entrenamiento. Tu transformación, registrada.</p>
+      <p style="font-size:11px;color:#4a3a7a;margin-bottom:12px">El informe mensual se genera automáticamente y las fotos se borran al descargarlo.</p>
+      <div class="photo-grid" id="photo-grid"></div>
+    </div>
+  </div>
+
+  <div id="tab-history" style="display:none">
+    <div class="day-card">
+      <div class="day-header"><span class="day-title">Registro del sistema</span></div>
+      <div id="history-list"><div style="font-size:12px;color:#6b5fa0;text-align:center;padding:20px">Sin registros aún</div></div>
+    </div>
+    <button class="btn btn-secondary" onclick="exportPDF(false)" style="margin-top:8px">Descargar informe del mes actual</button>
+  </div>
+</div>
+
+<!-- AUTO PENALTY MODAL (no se puede cerrar sin aceptar) -->
+<div class="auto-penalty-overlay" id="auto-penalty-overlay">
+  <div class="auto-penalty-modal">
+    <span class="auto-penalty-icon">⚠️</span>
+    <div class="auto-penalty-title">Penalización del sistema</div>
+    <div class="auto-penalty-sub" id="auto-penalty-sub">El sistema detectó que no completaste tu misión. No hay escapatoria.</div>
+    <div class="auto-penalty-box">
+      <div class="auto-penalty-name" id="auto-penalty-name"></div>
+      <div class="auto-penalty-desc" id="auto-penalty-desc"></div>
+    </div>
+    <div id="auto-penalty-tips"></div>
+    <button class="auto-penalty-accept" onclick="acceptAutoPenalty()">Acepto mi penalización</button>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="modal-photo">
+  <div class="modal">
+    <div class="photo-req-box">
+      <div class="photo-req-title">Registro fotográfico requerido</div>
+      <div class="photo-req-desc">Hunter, el sistema requiere registro fotográfico. Sube tu foto de hoy para completar el archivo.</div>
+      <button class="btn btn-primary" onclick="document.getElementById('photo-input').click()" style="margin-top:0">Subir foto</button>
+      <button class="btn btn-secondary" onclick="skipPhoto()" style="margin-top:8px">Omitir por hoy</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE MODAL -->
+<div class="modal-overlay" id="modal-complete">
+  <div class="modal">
+    <div id="modal-complete-content"></div>
+    <button class="modal-close" onclick="closeModal('modal-complete')">Cerrar sistema</button>
+  </div>
+</div>
+
+<!-- RANKUP MODAL -->
+<div class="modal-overlay" id="modal-rankup">
+  <div class="modal" style="text-align:center">
+    <div class="rankup-box">
+      <span class="rankup-icon" id="rankup-icon"></span>
+      <div class="rankup-title" id="rankup-title"></div>
+      <div class="rankup-sub" id="rankup-sub-modal"></div>
+      <div style="background:#1e1a3a;border:1px solid #3d2f7a;border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;color:#6b5fa0;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Rango actual</div>
+        <div style="font-size:18px;font-weight:700" id="rankup-current"></div>
+      </div>
+      <div class="reward-box">
+        <div class="reward-title">Recompensa desbloqueada</div>
+        <div class="reward-desc" id="rankup-reward"></div>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeModal('modal-rankup')">Continuar ascendiendo</button>
+  </div>
+</div>
+
+<!-- MONTHLY MODAL -->
+<div class="modal-overlay" id="modal-monthly">
+  <div class="modal">
+    <h2 style="color:#fbbf24">Informe mensual listo</h2>
+    <p>Ha pasado un mes. Descarga tu progreso y libera espacio para el próximo mes.</p>
+    <div class="month-alert" style="margin-bottom:12px">
+      <div class="month-alert-title">Fotos guardadas: <span id="monthly-photo-count">0</span></div>
+      <div class="month-alert-desc">Al descargar el informe las fotos se borrarán. Asegúrate de guardarlo.</div>
+    </div>
+    <button class="btn btn-green" onclick="exportPDF(true)">Descargar y liberar espacio</button>
+    <button class="modal-close" onclick="closeModal('modal-monthly')">Descargar después</button>
+  </div>
+</div>
+
+<input type="file" id="photo-input" class="photo-upload" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+
+<script>
+const RANKS = [
+  {name:'Rango E',short:'E',color:'#6b7280',days:14,reward:'Cómprate un libro que quieras'},
+  {name:'Rango D',short:'D',color:'#22d3ee',days:30,reward:'Una salida o experiencia (cine, restaurante...)'},
+  {name:'Rango C',short:'C',color:'#4ade80',days:42,reward:'Equipamiento deportivo nuevo'},
+  {name:'Rango B',short:'B',color:'#facc15',days:60,reward:'Viaje de un día a donde quieras'},
+  {name:'Rango A',short:'A',color:'#f97316',days:90,reward:'Experiencia grande (concierto, fin de semana...)'},
+  {name:'Rango S',short:'S',color:'#a78bfa',days:120,reward:'Algo que lleves mucho tiempo deseando'},
+  {name:'Hunter Nacional',short:'N',color:'#e879f9',days:180,reward:'Una experiencia única e irrepetible'},
+  {name:'Monarca de las Sombras',short:'M',color:'#fbbf24',days:999,reward:'Tú decides. Lo has ganado todo.'}
+];
+const DAY_TYPES = ['training','rest','training','rest','training','sport','rest'];
+const DAY_NAMES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DAY_FULL = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const TRAINING_TASKS = ['100 flexiones','100 sentadillas','100 abdominales','5 km de carrera'];
+const STRETCH_TASKS = ['Estiramientos o yoga (20-30 min)'];
+const SPORT_TASKS = ['Deporte libre (fútbol, esquí, baloncesto, escalada...)'];
+const PENALTIES = [
+  {title:'Subir 50 pisos',desc:'Sube 50 pisos de escaleras sin parar. Sin ascensor. Sin excusas.'},
+  {title:'Levantarse a las 5:00 AM',desc:'Mañana el despertador suena a las 5:00 AM. Sin snooze.'},
+  {title:'Leer 50 páginas',desc:'Lee 50 páginas de cualquier libro antes de dormir. Ni novelas ni manga.'},
+  {title:'Ducha fría 5 minutos',desc:'Mañana al despertar: ducha de agua fría durante 5 minutos completos.'},
+  {title:'1 hora de matemáticas',desc:'Resuelve ejercicios de matemáticas durante 1 hora sin distracciones.'},
+  {title:'1 hora de lógica',desc:'Ejercicios de lógica y razonamiento durante 1 hora.'},
+  {title:'Ensayo: Economía',desc:'Escribe un ensayo de 1000 palabras sobre economía: teorías, mercados, historia económica.'},
+  {title:'Ensayo: Filosofía',desc:'Escribe un ensayo de 1000 palabras sobre filosofía: corrientes, pensadores, dilemas éticos.'},
+  {title:'Ensayo: Ciencia',desc:'Escribe un ensayo de 1000 palabras sobre ciencia: descubrimientos, física, biología, tecnología.'},
+  {title:'Ensayo: Literatura',desc:'Escribe un ensayo sobre literatura: historia literaria, autores destacados o estilos.'},
+  {title:'Texto creativo: Novela corta',desc:'Escribe una novela corta de 1000 palabras. Crea personajes, conflicto y resolución.'},
+  {title:'Poema de 20 versos',desc:'Escribe un poema de exactamente 20 versos. Puede ser libre o con rima.'},
+  {title:'Sin pantallas todo el día',desc:'Cero teléfono, cero series, cero videojuegos. Solo lectura y estudio durante todo el día.'},
+  {title:'Aprender 20 palabras en otro idioma',desc:'Aprende 20 palabras nuevas en un idioma extranjero: pronunciación y uso en frase.'},
+  {title:'Discurso grabado en vídeo',desc:'Grábate dando un discurso de 5 minutos sobre un tema aleatorio. Entrena tu oratoria.'},
+  {title:'Resumir 3 artículos internacionales',desc:'Lee 3 artículos de actualidad internacional y escribe un resumen propio de 500 palabras.'},
+  {title:'Meditar 30 minutos',desc:'Siéntate en silencio absoluto y medita durante 30 minutos sin interrupciones.',tips:true}
+];
+const MEDITATION_TIPS = [
+  'Siéntate con la espalda recta, no tiesa. Los pies apoyados en el suelo o piernas cruzadas.',
+  'Cierra los ojos y enfoca tu atención en la respiración: inhala 4 segundos, exhala 4 segundos.',
+  'Cuando tu mente divague (y lo hará), no te juzgues. Simplemente vuelve a la respiración.',
+  'No hay meditación perfecta. El acto de volver al presente cada vez que te pierdes ES la práctica.',
+  'Puedes usar un temporizador suave para no estar pendiente del tiempo.',
+  'El objetivo no es vaciar la mente, sino observarla sin reaccionar.'
+];
+
+// PWA install
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-area').innerHTML =
+    `<div class="install-banner"><p>Instala la app en tu móvil</p><button class="install-btn" onclick="installApp()">Instalar</button></div>`;
+});
+window.addEventListener('appinstalled', () => { document.getElementById('install-area').innerHTML=''; });
+function installApp() {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('install-area').innerHTML=''; });
+}
+if('serviceWorker' in navigator) window.addEventListener('load', ()=>navigator.serviceWorker.register('/service-worker.js'));
+
+// Notifications
+function requestNotifications() {
+  if('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+}
+
+function scheduleNotification() {
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const midnight = new Date(); midnight.setHours(23,0,0,0);
+  const ms = midnight - now;
+  if(ms > 0 && ms < 3600000 * 2) {
+    setTimeout(()=>{
+      if(!todayDone() && !todayFailed() && getDayType() !== 'rest') {
+        new Notification('⚔️ Shadow Monarch', { body: '¡Queda 1 hora! Completa tu entrenamiento o el sistema te penalizará.', icon: '/icon-192.png' });
+      }
+    }, ms);
+  }
+}
+
+let state = JSON.parse(localStorage.getItem('sm_state3')||'null') || {
+  rankIdx:0, totalDays:0, streak:0, bestStreak:0, penalties:0,
+  completedDates:[], failedDates:[], history:[], photos:[],
+  lastMonthlyExport:null, pendingAutoPenalty:null
+};
+function save() { localStorage.setItem('sm_state3', JSON.stringify(state)); }
+function getTodayStr() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getDateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getDow() { const d=new Date().getDay(); return d===0?6:d-1; }
+function getDayType() { return DAY_TYPES[getDow()]; }
+function getCurrentTasks() { const t=getDayType(); return t==='training'?TRAINING_TASKS:t==='rest'?STRETCH_TASKS:SPORT_TASKS; }
+function todayDone() { return state.completedDates.includes(getTodayStr()); }
+function todayFailed() { return state.failedDates.includes(getTodayStr()); }
+
+// CHECK MISSED DAYS on app open
+function checkMissedDays() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Check up to 7 past days
+  for(let i=1; i<=7; i++) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const ds = getDateStr(d);
+    const dow = d.getDay()===0?6:d.getDay()-1;
+    const dtype = DAY_TYPES[dow];
+    if(dtype==='rest') continue;
+    if(state.completedDates.includes(ds)||state.failedDates.includes(ds)) continue;
+    // Missed day found — assign penalty
+    const p = PENALTIES[Math.floor(Math.random()*PENALTIES.length)];
+    state.failedDates.push(ds);
+    state.streak = 0;
+    state.penalties++;
+    state.history.unshift({date:ds, type:'fail', text:`Día fallido (detectado al abrir) — ${DAY_FULL[dow]}`});
+    state.pendingAutoPenalty = {p, date:ds, dow};
+    save();
+    break; // Show one at a time
+  }
+  if(state.pendingAutoPenalty) showAutoPenalty(state.pendingAutoPenalty);
+}
+
+function showAutoPenalty(data) {
+  const {p, date, dow} = data;
+  document.getElementById('auto-penalty-name').textContent = p.title;
+  document.getElementById('auto-penalty-desc').textContent = p.desc;
+  document.getElementById('auto-penalty-sub').textContent = `El sistema detectó que no completaste tu misión del ${DAY_FULL[dow||0]}. No hay escapatoria, Hunter.`;
+  let tips = '';
+  if(p.tips){
+    tips='<div style="margin-bottom:12px;text-align:left"><div style="font-size:12px;color:#a78bfa;font-weight:700;margin-bottom:8px">Tips para meditar:</div>';
+    MEDITATION_TIPS.forEach(t=>{tips+=`<div class="tip-item">${t}</div>`;});
+    tips+='</div>';
+  }
+  document.getElementById('auto-penalty-tips').innerHTML=tips;
+  document.getElementById('auto-penalty-overlay').classList.add('active');
+}
+
+function acceptAutoPenalty() {
+  state.pendingAutoPenalty = null;
+  save();
+  document.getElementById('auto-penalty-overlay').classList.remove('active');
+  renderAll();
+}
+
+// COUNTDOWN
+let countdownInterval = null;
+function startCountdown() {
+  if(countdownInterval) clearInterval(countdownInterval);
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 1000);
+}
+
+function updateCountdown() {
+  const box = document.getElementById('countdown-box');
+  const timeEl = document.getElementById('countdown-time');
+  const labelEl = document.getElementById('countdown-label');
+  const subEl = document.getElementById('countdown-sub');
+  const dtype = getDayType();
+
+  if(todayDone()) {
+    box.className='countdown-box done';
+    labelEl.textContent='Misión completada';
+    timeEl.textContent='✓ COMPLETADO';
+    subEl.textContent='Buen trabajo, Hunter. Descansa y vuelve mañana.';
+    return;
+  }
+  if(todayFailed()) {
+    box.className='countdown-box danger';
+    labelEl.textContent='Día fallido';
+    timeEl.textContent='PENALIZADO';
+    subEl.textContent='Cumple tu penalización. El sistema no olvida.');
+    return;
+  }
+  if(dtype==='rest') {
+    box.className='countdown-box rest';
+    labelEl.textContent='Día de recuperación';
+    timeEl.textContent='DESCANSO';
+    subEl.textContent='Estira, recupera y prepárate para mañana.');
+    return;
+  }
+
+  const now = new Date();
+  const midnight = new Date(); midnight.setHours(24,0,0,0);
+  const diff = midnight - now;
+  const h = Math.floor(diff/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  if(h >= 3) {
+    box.className='countdown-box normal';
+    labelEl.textContent='Tiempo restante hoy';
+    timeEl.textContent=timeStr;
+    subEl.textContent='Completa tu misión antes de medianoche';
+  } else if(h >= 1) {
+    box.className='countdown-box warning';
+    labelEl.textContent='⚠ Tiempo limitado';
+    timeEl.textContent=timeStr;
+    subEl.textContent='El sistema observa. No falles.';
+  } else {
+    box.className='countdown-box danger';
+    labelEl.textContent='🚨 Peligro de penalización';
+    timeEl.textContent=timeStr;
+    subEl.textContent='Menos de 1 hora. Actúa ahora.';
+  }
+
+  // Auto-fail at midnight
+  if(diff <= 0) {
+    triggerAutoPenaltyNow();
+  }
+}
+
+function triggerAutoPenaltyNow() {
+  if(todayDone()||todayFailed()) return;
+  const today=getTodayStr(), dow=getDow();
+  const p=PENALTIES[Math.floor(Math.random()*PENALTIES.length)];
+  state.failedDates.push(today);
+  state.streak=0; state.penalties++;
+  state.history.unshift({date:today,type:'fail',text:`Penalización automática — medianoche — ${DAY_FULL[dow]}`});
+  state.pendingAutoPenalty={p,date:today,dow};
+  save();
+  showAutoPenalty({p,date:today,dow});
+  renderAll();
+}
+
+function compressImage(dataUrl,cb){
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas'),max=400;
+    let w=img.width,h=img.height;
+    if(w>h){if(w>max){h=h*max/w;w=max;}}else{if(h>max){w=w*max/h;h=max;}}
+    canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    cb(canvas.toDataURL('image/jpeg',0.6));
+  };
+  img.src=dataUrl;
+}
+
+function renderRank(){
+  const r=RANKS[Math.min(state.rankIdx,RANKS.length-1)];
+  const prevDays=state.rankIdx>0?RANKS[state.rankIdx-1].days:0;
+  const needed=r.days-prevDays,current=state.totalDays-prevDays;
+  const pct=Math.min(100,Math.round((current/needed)*100));
+  const el=document.getElementById('rank-icon');
+  el.textContent=r.short;el.style.background=r.color+'33';el.style.color=r.color;el.style.border=`2px solid ${r.color}`;
+  document.getElementById('rank-name').textContent=r.name;
+  document.getElementById('rank-name').style.color=r.color;
+  document.getElementById('rank-sub').textContent=`${current}/${needed} días para subir`;
+  document.getElementById('rank-fill').style.width=pct+'%';
+  document.getElementById('streak-num').textContent=state.streak;
+}
+
+function renderWeek(){
+  const dow=getDow();let html='';
+  for(let i=0;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()-dow+i);
+    const ds=getDateStr(d);
+    const isToday=i===dow,done=state.completedDates.includes(ds);
+    html+=`<div class="week-day${isToday?' today':''}${done?' completed':''}"><div class="week-day-name">${DAY_NAMES[i]}</div><div class="week-day-dot"></div></div>`;
+  }
+  document.getElementById('week-grid').innerHTML=html;
+}
+
+function renderDayMsg(){
+  const t=getDayType(),dow=getDow();
+  const msgs={training:`Sistema activo. Hoy es ${DAY_FULL[dow]} — día de entrenamiento.`,rest:`Hoy es ${DAY_FULL[dow]} — día de estiramientos. Cuida tu cuerpo.`,sport:`Hoy es Sábado — elige tu deporte.`};
+  document.getElementById('day-msg').textContent=msgs[t];
+}
+
+function renderTasks(){
+  const tasks=getCurrentTasks(),done=todayDone(),failed=todayFailed();
+  const saved=JSON.parse(localStorage.getItem('sm_tasks_'+getTodayStr())||'[]');
+  let html='';
+  if(done){html=`<div class="reward-box"><div class="reward-title">Misión del día completada</div><div class="reward-desc">El sistema registra tu progreso, Hunter.</div></div>`;}
+  else if(failed){html=`<div class="penalty-box" style="text-align:center"><div class="penalty-title">Día fallido</div><div class="penalty-desc">Cumple tu penalización. El sistema no olvida.</div></div>`;}
+  else{
+    const t=getDayType();
+    const title=t==='training'?'Entrenamiento del sistema':t==='rest'?'Recuperación activa':'Deporte libre';
+    html=`<div class="day-card"><div class="day-header"><span class="day-title">${title}</span></div><div class="task-list">`;
+    tasks.forEach((t,i)=>{const checked=saved.includes(i);html+=`<div class="task-item${checked?' done':''}" onclick="toggleTask(${i})"><div class="task-check"></div><div class="task-text">${t}</div></div>`;});
+    html+=`</div></div>`;
+  }
+  document.getElementById('task-area').innerHTML=html;
+  const allDone=tasks.every((_,i)=>saved.includes(i));
+  document.getElementById('complete-btn').style.display=(!done&&!failed&&allDone)?'block':'none';
+}
+
+function toggleTask(i){
+  if(todayDone()||todayFailed()) return;
+  const key='sm_tasks_'+getTodayStr();
+  let saved=JSON.parse(localStorage.getItem(key)||'[]');
+  const idx=saved.indexOf(i);if(idx>=0)saved.splice(idx,1);else saved.push(i);
+  localStorage.setItem(key,JSON.stringify(saved));renderTasks();
+}
+
+function startComplete(){document.getElementById('modal-photo').classList.add('active');}
+function skipPhoto(){closeModal('modal-photo');completeDay();}
+
+function handlePhoto(e){
+  const file=e.target.files[0];if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    compressImage(ev.target.result,compressed=>{
+      const d=new Date();
+      state.photos.push({data:compressed,date:`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,rank:RANKS[state.rankIdx].name});
+      save();closeModal('modal-photo');completeDay();
+      if(document.getElementById('tab-diary').style.display!=='none') renderDiary();
+    });
+  };
+  r.readAsDataURL(file);e.target.value='';
+}
+
+function completeDay(){
+  const today=getTodayStr();if(todayDone()) return;
+  state.completedDates.push(today);state.totalDays++;state.streak++;
+  if(state.streak>state.bestStreak)state.bestStreak=state.streak;
+  state.history.unshift({date:today,type:'complete',text:`Entrenamiento completado — ${DAY_FULL[getDow()]}`});
+  save();
+  const prevRank=state.rankIdx;checkRankUp();
+  if(state.rankIdx>prevRank){showRankUp();}
+  else{
+    const dow=getDow();let extra='';
+    if(dow===4&&checkFridayReward()) extra=`<p style="font-size:13px;color:#86efac;font-weight:700;margin-top:8px;text-align:center">Esta noche puedes jugar, ver una serie o salir con tus amigos. Te lo has ganado.</p>`;
+    else if(dow===5) extra=`<p style="font-size:13px;color:#86efac;font-weight:700;margin-top:8px;text-align:center">Deporte completado. La noche del sábado es tuya.</p>`;
+    document.getElementById('modal-complete-content').innerHTML=`<div class="reward-box"><div class="reward-title">Misión completada, Hunter</div><div class="reward-desc">Sigue avanzando. El Monarca no descansa.</div></div><p style="font-size:12px;color:#6b5fa0;text-align:center;margin-top:8px">Racha actual: ${state.streak} días</p>${extra}`;
+    document.getElementById('modal-complete').classList.add('active');
+  }
+  checkMonthlyExport();renderAll();
+}
+
+function checkFridayReward(){
+  const d=new Date();
+  for(let i=0;i<=4;i++){
+    const dd=new Date(d);dd.setDate(d.getDate()-4+i);
+    const ds=getDateStr(dd);
+    if(DAY_TYPES[i]!=='rest'&&!state.completedDates.includes(ds)) return false;
+  }
+  return true;
+}
+
+function checkRankUp(){
+  while(state.rankIdx<RANKS.length-1&&state.totalDays>=RANKS[state.rankIdx].days)state.rankIdx++;
+  save();
+}
+
+function showRankUp(){
+  const r=RANKS[state.rankIdx],prev=RANKS[state.rankIdx-1];
+  document.getElementById('rankup-icon').textContent=r.short;
+  document.getElementById('rankup-title').textContent='¡Has subido de rango!';
+  document.getElementById('rankup-sub-modal').textContent=`Has superado el ${prev.name}. Pocos llegan aquí.`;
+  document.getElementById('rankup-current').textContent=r.name;
+  document.getElementById('rankup-current').style.color=r.color;
+  document.getElementById('rankup-reward').textContent=r.reward;
+  document.getElementById('modal-rankup').classList.add('active');
+}
+
+function checkMonthlyExport(){
+  if(!state.lastMonthlyExport){state.lastMonthlyExport=getTodayStr();save();return;}
+  const parts=state.lastMonthlyExport.split('-').map(Number);
+  const last=new Date(parts[0],parts[1],parts[2]);
+  const diff=(new Date()-last)/(1000*60*60*24);
+  if(diff>=30&&state.photos.length>0){
+    document.getElementById('monthly-photo-count').textContent=state.photos.length;
+    document.getElementById('modal-monthly').classList.add('active');
+  }
+}
+
+function renderMonthAlert(){
+  if(!state.lastMonthlyExport){document.getElementById('month-alert-area').innerHTML='';return;}
+  const parts=state.lastMonthlyExport.split('-').map(Number);
+  const last=new Date(parts[0],parts[1],parts[2]);
+  const diff=Math.floor((new Date()-last)/(1000*60*60*24));
+  const remaining=30-diff;
+  if(remaining<=7&&remaining>0&&state.photos.length>0){
+    document.getElementById('month-alert-area').innerHTML=`<div class="month-alert"><div class="month-alert-title">Informe mensual en ${remaining} días</div><div class="month-alert-desc">Tienes ${state.photos.length} fotos guardadas.</div></div>`;
+  }else{document.getElementById('month-alert-area').innerHTML='';}
+}
+
+function exportPDF(autoDelete){
+  const r=RANKS[state.rankIdx],now=new Date();
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Informe Shadow Monarch</title><style>body{font-family:sans-serif;background:#0a0a0f;color:#e0d8ff;padding:40px;max-width:620px;margin:0 auto}h1{color:#a78bfa;font-size:24px}h2{color:#7c3aed;font-size:16px;margin:24px 0 12px;text-transform:uppercase;letter-spacing:1px}.rank-badge{display:inline-block;padding:6px 16px;border-radius:20px;font-weight:700;font-size:14px;margin-bottom:16px}.stat{display:inline-block;background:#12102a;border:1px solid #2a1f5a;border-radius:8px;padding:12px 20px;margin:6px;text-align:center}.stat-n{font-size:26px;font-weight:700;color:#a78bfa}.stat-l{font-size:11px;color:#6b5fa0}.photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.photos img{width:120px;height:120px;object-fit:cover;border-radius:6px}.photo-item{display:flex;flex-direction:column;align-items:center}.photo-caption{font-size:10px;color:#6b5fa0;text-align:center;margin-top:2px}.hist{background:#12102a;border:1px solid #1e1a3a;border-radius:6px;padding:8px 12px;margin:4px 0;font-size:12px;display:flex;justify-content:space-between}.reward-section{background:#0a1a0a;border:1px solid #14532d;border-radius:10px;padding:16px;margin:16px 0}.reward-section h3{color:#86efac;margin:0 0 6px}.reward-section p{color:#4ade80;font-size:13px;margin:0}.footer{margin-top:40px;padding-top:16px;border-top:1px solid #2a1f5a;font-size:11px;color:#4a3a7a;text-align:center}</style></head><body>`);
+  w.document.write(`<h1>Shadow Monarch Training System</h1><div class="rank-badge" style="background:${r.color}22;color:${r.color};border:1px solid ${r.color}">${r.name}</div><div style="font-size:12px;color:#6b5fa0;margin-bottom:20px">Informe: ${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}</div>`);
+  w.document.write(`<h2>Estadísticas</h2><div><div class="stat"><div class="stat-n">${state.totalDays}</div><div class="stat-l">Entrenamientos</div></div><div class="stat"><div class="stat-n">${state.bestStreak}</div><div class="stat-l">Mejor racha</div></div><div class="stat"><div class="stat-n">${state.streak}</div><div class="stat-l">Racha actual</div></div><div class="stat"><div class="stat-n">${state.penalties}</div><div class="stat-l">Penalizaciones</div></div></div>`);
+  if(state.rankIdx>0){const prev=RANKS[state.rankIdx-1];w.document.write(`<div class="reward-section"><h3>Recompensa desbloqueada</h3><p>${prev.reward}</p></div>`);}
+  if(state.photos.length){w.document.write(`<h2>Galería (${state.photos.length} fotos)</h2><div class="photos">`);state.photos.forEach(p=>{w.document.write(`<div class="photo-item"><img src="${p.data}"><div class="photo-caption">${p.date}<br>${p.rank||''}</div></div>`);});w.document.write(`</div>`);}
+  w.document.write(`<h2>Historial</h2>`);state.history.slice(0,30).forEach(h=>{const c=h.type==='complete'?'#7c3aed':'#dc2626';w.document.write(`<div class="hist"><span style="color:${c}">${h.text}</span><span style="color:#4a3a7a">${h.date}</span></div>`);});
+  w.document.write(`<div class="footer">Shadow Monarch Training System — ${r.name} — ${now.getFullYear()}</div></body></html>`);
+  w.document.close();
+  if(autoDelete){state.photos=[];state.lastMonthlyExport=getTodayStr();save();closeModal('modal-monthly');renderDiary();renderMonthAlert();}
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+
+function renderStats(){
+  document.getElementById('s-total').textContent=state.totalDays;
+  document.getElementById('s-streak').textContent=state.streak;
+  document.getElementById('s-best').textContent=state.bestStreak;
+  document.getElementById('s-penalties').textContent=state.penalties;
+  let rh='';
+  RANKS.forEach((r,i)=>{const done=state.rankIdx>i,cur=state.rankIdx===i;rh+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1e1a3a"><div style="width:28px;height:28px;border-radius:50%;background:${r.color}33;color:${r.color};border:1px solid ${r.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${r.short}</div><div style="flex:1"><div style="font-size:12px;color:${cur?r.color:(done?'#4ade80':'#6b5fa0')};font-weight:${cur?700:400}">${r.name}</div><div style="font-size:11px;color:#4a3a7a">${r.days} días acumulados</div></div><div style="font-size:12px;color:${done?'#4ade80':(cur?r.color:'#4a3a7a')}">${done?'Completado':(cur?'Activo':'Bloqueado')}</div></div>`;});
+  document.getElementById('rank-list').innerHTML=rh;
+  let rewh='';
+  RANKS.forEach((r,i)=>{if(state.rankIdx>i)rewh+=`<div style="padding:8px 0;border-bottom:1px solid #1e1a3a"><div style="font-size:11px;color:${r.color};font-weight:700;margin-bottom:2px">${r.name}</div><div style="font-size:12px;color:#c4b5fd">${r.reward}</div></div>`;});
+  if(!rewh)rewh='<div style="font-size:12px;color:#6b5fa0;text-align:center;padding:16px">Completa tu primer rango para desbloquear recompensas</div>';
+  document.getElementById('reward-list').innerHTML=rewh;
+}
+
+function renderDiary(){
+  let html='';
+  state.photos.slice().reverse().forEach((p,i)=>{html+=`<div class="photo-thumb" onclick="viewPhoto(${state.photos.length-1-i})"><img src="${p.data}" alt="foto"><div class="photo-date">${p.date}</div></div>`;});
+  const empties=Math.max(0,6-state.photos.length);
+  html+=`<div class="photo-thumb" onclick="document.getElementById('photo-input').click()" style="border:1px dashed #3d2f7a"><div class="photo-empty">+</div></div>`;
+  for(let i=1;i<empties;i++)html+=`<div class="photo-thumb" style="cursor:default"><div class="photo-empty" style="font-size:12px;color:#2a1f5a">—</div></div>`;
+  document.getElementById('photo-grid').innerHTML=html;
+}
+
+function viewPhoto(i){
+  const p=state.photos[i];if(!p)return;
+  document.getElementById('modal-complete-content').innerHTML=`<img src="${p.data}" style="width:100%;border-radius:8px;margin-bottom:8px"><div style="font-size:12px;color:#6b5fa0;text-align:center">${p.date} — ${p.rank||''}</div>`;
+  document.getElementById('modal-complete').classList.add('active');
+}
+
+function renderHistory(){
+  if(!state.history.length)return;
+  let html='';
+  state.history.slice(0,30).forEach(h=>{const color=h.type==='complete'?'#7c3aed':'#dc2626';const badge=h.type==='fail'?'<span class="penalty-badge">Penalización</span>':'';html+=`<div class="history-item"><div class="history-dot" style="background:${color}"></div><div class="history-text">${h.text}${badge}</div><div class="history-date">${h.date}</div></div>`;});
+  document.getElementById('history-list').innerHTML=html;
+}
+
+function showTab(t){
+  ['today','stats','diary','history'].forEach(id=>{document.getElementById('tab-'+id).style.display=id===t?'block':'none';});
+  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',['today','stats','diary','history'][i]===t);});
+  if(t==='stats')renderStats();
+  if(t==='diary')renderDiary();
+  if(t==='history')renderHistory();
+}
+
+function renderAll(){renderRank();renderWeek();renderDayMsg();renderTasks();renderMonthAlert();}
+
+// INIT
+requestNotifications();
+checkMissedDays();
+renderAll();
+startCountdown();
+scheduleNotification();
+</script>
+</body>
+</html>
